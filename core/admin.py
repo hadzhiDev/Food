@@ -1,7 +1,10 @@
 from django.contrib import admin
+from django.contrib.admin import options
 from django import forms
 
-from .models import Category, Food, FoodMakeup, Size, FoodWeight, OrderingFood, Order
+from nested_admin.nested import NestedTabularInline, NestedModelAdmin
+
+from .models import Category, Food, FoodMakeup, Size, FoodWeight, OrderingFood, Order, SizeForSale
 
 
 @admin.register(Category)
@@ -11,20 +14,24 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ('id', 'name')
 
 
-class FoodMakeupStackedInline(admin.TabularInline):
+@admin.register(Size)
+class SizeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'price', 'food',)
+    list_display_links = ('id', 'name')
+    search_fields = ('id', 'name')
 
+
+class FoodMakeupStackedInline(admin.TabularInline):
     model = FoodMakeup
     extra = 1
 
 
 class FoodWeightStackedInline(admin.TabularInline):
-
     model = FoodWeight
     extra = 1
 
 
 class SizeStackedInline(admin.TabularInline):
-
     model = Size
     extra = 1
 
@@ -48,10 +55,16 @@ class FoodAdmin(admin.ModelAdmin):
     inlines = [FoodMakeupStackedInline, SizeStackedInline, FoodWeightStackedInline]
 
 
-class OrderingFoodStackedInline(admin.StackedInline):
+class SizeForSaleStackedInline(NestedTabularInline):
+    model = SizeForSale
+    extra = 1
+
+
+class OrderingFoodStackedInline(NestedTabularInline):
     model = OrderingFood
     extra = 1
-    readonly_fields = ('created_at', 'updated_at',)
+    inlines = [SizeForSaleStackedInline,]
+    readonly_fields = ('total_price', 'created_at', 'updated_at',)
 
 
 class OrderAdminForm(forms.ModelForm):
@@ -64,7 +77,7 @@ class OrderAdminForm(forms.ModelForm):
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(NestedModelAdmin):
     list_display = ('id', 'name', 'email', 'phone', 'total_price', 'status',)
     list_display_links = ('id', 'name',)
     search_fields = ('id', 'name', 'email', 'phone', 'address', 'home',)
@@ -72,3 +85,7 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = ('total_price', 'created_at', 'updated_at',)
     inlines = (OrderingFoodStackedInline,)
     form = OrderAdminForm
+
+
+# admin.site.register(Order, OrderAdmin)
+# admin.site.register(SizeForSaleStackedInline)

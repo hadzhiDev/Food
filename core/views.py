@@ -1,9 +1,7 @@
-from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework import filters
-from rest_framework.viewsets import ModelViewSet
 
 from core.filters import FoodFilter
 from core.models import Category, Food, Size, FoodMakeup, FoodWeight, OrderingFood, Order
@@ -11,20 +9,20 @@ from core.paginations import SimpleResultPagination
 from core.serializers import (CategorySerializer, FoodSerializer, CreateFoodSerializer, ReadFoodSerializer,
                               FoodMakeupSerializer, FoodSizeSerializer, FoodWeightSerializer,
                               OrderSerializer, OrderingFoodSerializer, CreateOrderSerializer)
-from core.mixins import SerializeByActionMixin, UltraModelViewSet
+from core.mixins import UltraModelViewSet
 
 
-class CategoryViewSet(ModelViewSet):
+class CategoryViewSet(UltraModelViewSet):
     queryset = Category.objects.all()
     pagination_class = SimpleResultPagination
     serializer_class = CategorySerializer
     lookup_field = 'id'
     filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
     search_fields = ['name']
-    permission_classes = (IsAuthenticated, )
+    permission_classes = (AllowAny, )
 
 
-class FoodViewSet(SerializeByActionMixin, ModelViewSet):
+class FoodViewSet(UltraModelViewSet):
     queryset = Food.objects.all()
     pagination_class = SimpleResultPagination
     serializer_classes = {
@@ -38,10 +36,16 @@ class FoodViewSet(SerializeByActionMixin, ModelViewSet):
     search_fields = ['name',]
     ordering_fields = ['name',]
     filterset_class = FoodFilter
-    permission_classes = (IsAuthenticated,)
+    permission_classes_by_action = {
+        'list': (AllowAny,),
+        'retrieve': (AllowAny,),
+        'create': (IsAuthenticated, IsAdminUser),
+        'update': (IsAuthenticated, IsAdminUser,),
+        'destroy': (IsAuthenticated, IsAdminUser,),
+    }
 
 
-class FoodSizeViewSet(ModelViewSet):
+class FoodSizeViewSet(UltraModelViewSet):
     queryset = Size.objects.all()
     serializer_class = FoodSizeSerializer
     pagination_class = SimpleResultPagination
@@ -49,10 +53,16 @@ class FoodSizeViewSet(ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
     search_fields = ['name', 'price']
     filterset_fields = ['food']
-    permission_classes = (IsAuthenticated,)
+    permission_classes_by_action = {
+        'list': (AllowAny,),
+        'retrieve': (AllowAny,),
+        'create': (IsAuthenticated, IsAdminUser),
+        'update': (IsAuthenticated, IsAdminUser,),
+        'destroy': (IsAuthenticated, IsAdminUser,),
+    }
 
 
-class FoodMakeupViewSet(ModelViewSet):
+class FoodMakeupViewSet(UltraModelViewSet):
     queryset = FoodMakeup.objects.all()
     serializer_class = FoodMakeupSerializer
     pagination_class = SimpleResultPagination
@@ -60,10 +70,10 @@ class FoodMakeupViewSet(ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
     search_fields = ['name',]
     filterset_fields = ['food',]
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (AllowAny,)
 
 
-class FoodWeightViewSet(ModelViewSet):
+class FoodWeightViewSet(UltraModelViewSet):
     queryset = FoodWeight.objects.all()
     serializer_class = FoodWeightSerializer
     pagination_class = SimpleResultPagination
@@ -71,7 +81,13 @@ class FoodWeightViewSet(ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
     search_fields = ['value',]
     filterset_fields = ['food',]
-    permission_classes = (IsAuthenticated,)
+    permission_classes_by_action = {
+        'list': (AllowAny,),
+        'retrieve': (AllowAny,),
+        'create': (AllowAny,),
+        'update': (AllowAny, AllowAny,),
+        'destroy': (IsAuthenticated, IsAdminUser,),
+    }
 
 
 class OrderViewSet(UltraModelViewSet):
@@ -88,7 +104,13 @@ class OrderViewSet(UltraModelViewSet):
     ordering_fields = ['created_at']
     search_fields = ['name', 'email', 'phone', 'address', 'home']
     filterset_fields = ['ordering_food__food']
-    permission_classes = (AllowAny,)
+    permission_classes_by_action = {
+        'list': (AllowAny,),
+        'retrieve': (AllowAny,),
+        'create': (AllowAny,),
+        'update': (AllowAny, AllowAny,),
+        'destroy': (IsAuthenticated, IsAdminUser,),
+    }
 
 
 class OrderingFoodViewSet(UltraModelViewSet):

@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django_filters',
     'django_cleanup',
     'drf_yasg',
+    'nested_admin',
 ]
 
 MIDDLEWARE = [

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 # from drf_writable_nested.serializers import WritableNestedModelSerializer
 
-from core.models import Category, Food, Size, FoodMakeup, FoodWeight, OrderingFood, Order
+from core.models import Category, Food, Size, FoodMakeup, FoodWeight, OrderingFood, Order, SizeForSale
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -93,13 +93,19 @@ class FoodWeightSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class SizeForSaleForReadOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SizeForSale
+        fields = ('size', 'quantity',)
+
+
 class OrderingFoodForReadOrderSerializer(serializers.ModelSerializer):
     food = ReadFoodSerializer(read_only=True)
-    total_price = serializers.FloatField(read_only=True)
+    sizes_for_sale = SizeForSaleForReadOrderSerializer(many=True)
 
     class Meta:
         model = OrderingFood
-        fields = ('food', 'quantity', 'total_price', 'size',)
+        fields = ('food', 'sizes_for_sale',)
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -116,10 +122,18 @@ class OrderSerializer(serializers.ModelSerializer):
         return ret
 
 
+class SizesForCreateOrderFoodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SizeForSale
+        fields = ('size', 'quantity',)
+
+
 class OrderingFoodForCreateOrderSerializer(serializers.ModelSerializer):
+    sizes_for_sale = SizesForCreateOrderFoodSerializer(many=True)
+
     class Meta:
         model = OrderingFood
-        fields = ('food', 'quantity', 'size')
+        fields = ('food', 'sizes_for_sale',)
 
 
 class CreateOrderSerializer(serializers.ModelSerializer):
@@ -139,16 +153,14 @@ class CreateOrderSerializer(serializers.ModelSerializer):
 
         return attrs
 
-    # def validate_home(self, value):
-    #     if len(value) < 3:
-    #         raise serializers.ValidationError(['Home must be at least 3 characters'])
-    #     return value
-
     def create(self, validated_data):
-        food = validated_data.pop('ordering_food', [])
+        ordering_food = validated_data.pop('ordering_food', [])
         order = Order.objects.create(**validated_data)
-        for item in food:
-            OrderingFood.objects.create(**item, order=order)
+        for food in ordering_food:
+            sizes_for_sale = food.pop('sizes_for_sale', [])
+            order_food = OrderingFood.objects.create(**food, order=order)
+            for item in sizes_for_sale:
+                SizeForSale.objects.create(**item, ordering_food=order_food)
         return order
 
 

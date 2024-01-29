@@ -42,7 +42,7 @@ class Size(TimeStampAbstractModel):
         verbose_name = 'размер'
         verbose_name_plural = 'размеры'
 
-    name = models.CharField('название', max_length=150, unique=True)
+    name = models.CharField('название', max_length=150,)
     price = models.DecimalField('цена', max_digits=10, decimal_places=2, default=0.0)
     food = models.ForeignKey('core.Food', models.CASCADE, 'sizes', verbose_name='блюда')
 
@@ -112,27 +112,38 @@ class Order(TimeStampAbstractModel):
     total_price.fget.short_description = 'Итоговая цена'
 
 
+class SizeForSale(TimeStampAbstractModel):
+
+    size = models.ForeignKey('core.Size', models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    ordering_food = models.ForeignKey('core.OrderingFood', models.CASCADE, related_name='sizes_for_sale')
+
+    def __str__(self):
+        return f'{self.size} - {self.quantity} - {self.ordering_food}'
+
+    @property
+    def total_price(self):
+        return self.size.price * self.quantity
+
+    def clean(self):
+        sizes = Size.objects.filter(food=self.ordering_food.food)
+        for size in sizes:
+            if not size.id == self.size.id:
+                raise ValidationError(message="the food does not include this size")
+
+
 class OrderingFood(TimeStampAbstractModel):
 
     class Meta:
         verbose_name = 'блюда для заказа'
         ordering = ('-created_at',)
 
-    # price = models.DecimalField('цена', max_digits=10, decimal_places=2, default=0.0)
-    size = models.ForeignKey('core.Size', models.PROTECT,)
-    quantity = models.PositiveIntegerField('количество', default=1)
     order = models.ForeignKey('core.Order', models.CASCADE, 'ordering_food', verbose_name='заказ')
     food = models.ForeignKey('core.Food', models.PROTECT, verbose_name='блюда')
 
-    def clean(self):
-        if not Size.objects.get(food=self.food, id=self.size.id):
-            raise ValidationError({'name': ["the food does not include this size"]})
-
     @property
     def total_price(self):
-        size = Size.objects.get(food=self.food, id=self.size.id)
-        if size:
-            return size.price * self.quantity
+        return sum(item.total_price for item in self.sizes_for_sale.all())
 
     def __str__(self):
         return f'{self.order} - {self.food}'

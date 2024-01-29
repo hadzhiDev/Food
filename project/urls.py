@@ -23,7 +23,8 @@ from django.shortcuts import redirect
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include('core.urls')),
-    path('', lambda r: redirect('/admin/'))
+    path('', lambda r: redirect('/admin/')),
+    path('_nested_admin/', include('nested_admin.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
